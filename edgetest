@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+"""
+Runs an Edge test.
+
+Run like:
+
+    edgetest <path to test file> <test name>
+"""
+
+import ast
+import os
+import re
+import sys
+
+PROJECT_ROOT = '?'
+
+# Optional custom command inserted before the test command. e.g. "time"
+COMMAND_PREFIX = os.environ.get('EDGETEST_PREFIX', '')
+
+def run(paths, dryrun=False, show=False, keep_open=False):
+
+    if len(paths) == 1:
+        path = paths[0]
+        test = None
+    elif len(paths) == 2:
+        path = paths[0]
+        test = paths[1]
+    else:
+        raise Exception('Invalid arguments. Should be <path>, or <path> <test>.')
+
+    root_matches = PROJECT_ROOT.findall(path)
+    if not root_matches:
+        raise Exception('Unable to find project root in test path: %s' % path)
+    project_root = root_matches[0]
+
+    class_name = 'Tests'
+
+    if path.endswith('.py'):
+
+        # If we're running a specific test, check to see which class the test lies under.
+        if test:
+            with open(path) as file:
+                node = ast.parse(file.read())
+            classes = [n for n in node.body if isinstance(n, ast.ClassDef)]
+            skip = False
+            for cls in classes:
+                for subnode in cls.body:
+                    if not isinstance(subnode, ast.FunctionDef):
+                        continue
+                    if subnode.name == test:
+                        class_name = cls.name
+                        skip = True
+                        break
+                if skip:
+                    break
+
+        path = path[:-3]
+
+    dot_path = PROJECT_ROOT.sub('', path).replace('/', '.') + '.' + class_name
+    if test:
+        dot_path += '.'+test
+
+    cmd = f'cd {project_root}; export LOGLEVEL=debug; export ROLE=qa; export USE_DESKTOP={int(show)}; export KEEP_BROWSER_OPEN={int(keep_open)}; {COMMAND_PREFIX} ./manage test {dot_path}'
+    print('Running %s' % cmd)
+    if not dryrun:
+        os.system(cmd)
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Run an Edge Python test.')
+    parser.add_argument('paths', nargs='+')
+    parser.add_argument('--dryrun',
+                    action='store_true', default=False, help='Only display commands without running.')
+    parser.add_argument('--show',
+                    action='store_true', default=False, help='Show browser.')
+    parser.add_argument('--keep-open',
+                    action='store_true', default=False, help='Keep browser open after tests finish.')
+
+    args = parser.parse_args()
+    run(args.paths, args.dryrun, args.show, args.keep_open)
