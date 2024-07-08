@@ -1,8 +1,6 @@
 import os
-import sys
 
-from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
+from setuptools import setup
 
 
 def read_md(f):
@@ -19,7 +17,7 @@ def get_reqs(fn):
 
 setup(
     name="edgetest",
-    version='0.1.0',
+    version='0.1.1',
     scripts=['edgetest'],
     author="Chris Spencer",
     author_email="cspencer@edgeondemand.com",
