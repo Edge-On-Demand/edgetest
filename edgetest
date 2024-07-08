@@ -12,7 +12,7 @@ import os
 import re
 import sys
 
-PROJECT_ROOT = '?'
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src/alphabuyer/'))
 
 # Optional custom command inserted before the test command. e.g. "time"
 COMMAND_PREFIX = os.environ.get('EDGETEST_PREFIX', '')
